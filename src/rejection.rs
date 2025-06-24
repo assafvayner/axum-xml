@@ -1,8 +1,6 @@
-use axum_core::body;
 use axum_core::extract::rejection::BytesRejection;
 use axum_core::response::Response;
 use http::StatusCode;
-use http_body::Full;
 use thiserror::Error;
 
 use crate::IntoResponse;
@@ -21,14 +19,10 @@ impl IntoResponse for XmlRejection {
     fn into_response(self) -> crate::Response {
         match self {
             e @ XmlRejection::InvalidXMLBody(_) => {
-                let mut res = Response::new(body::boxed(Full::from(format!("{}", e))));
-                *res.status_mut() = StatusCode::UNPROCESSABLE_ENTITY;
-                res
+                (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()).into_response()
             }
             e @ XmlRejection::MissingXMLContentType => {
-                let mut res = Response::new(body::boxed(Full::from(format!("{}", e))));
-                *res.status_mut() = StatusCode::UNSUPPORTED_MEDIA_TYPE;
-                res
+                (StatusCode::UNSUPPORTED_MEDIA_TYPE, e.to_string()).into_response()
             }
             XmlRejection::BytesRejection(e) => e.into_response(),
         }
