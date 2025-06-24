@@ -1,8 +1,7 @@
 use axum_core::extract::rejection::BytesRejection;
+use axum_core::response::{IntoResponse, Response};
 use http::StatusCode;
 use thiserror::Error;
-
-use crate::IntoResponse;
 
 #[derive(Debug, Error)]
 pub enum XmlRejection {
@@ -15,15 +14,15 @@ pub enum XmlRejection {
 }
 
 impl IntoResponse for XmlRejection {
-    fn into_response(self) -> crate::Response {
+    fn into_response(self) -> Response {
         match self {
-            e @ XmlRejection::InvalidXMLBody(_) => {
+            e @ Self::InvalidXMLBody(_) => {
                 (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()).into_response()
             }
-            e @ XmlRejection::MissingXMLContentType => {
+            e @ Self::MissingXMLContentType => {
                 (StatusCode::UNSUPPORTED_MEDIA_TYPE, e.to_string()).into_response()
             }
-            XmlRejection::BytesRejection(e) => e.into_response(),
+            Self::BytesRejection(e) => e.into_response(),
         }
     }
 }

@@ -20,7 +20,7 @@ impl TestClient {
             .await
             .expect("Could not bind ephemeral socket");
         let addr = listener.local_addr().unwrap();
-        println!("Listening on {}", addr);
+        println!("Listening on {addr}");
 
         tokio::spawn(async move {
             axum::serve(listener, app).await.expect("server error");
@@ -56,7 +56,7 @@ async fn deserialize_body() {
     let client = TestClient::new(app).await;
     let res = client
         .post("/")
-        .body(r#"<Input><foo>bar</foo></Input>"#)
+        .body(r"<Input><foo>bar</foo></Input>")
         .header("content-type", "application/xml")
         .send()
         .await
@@ -82,7 +82,7 @@ async fn consume_body_to_xml_requires_xml_content_type() {
     let client = TestClient::new(app).await;
     let res = client
         .post("/")
-        .body(r#"<Input><foo>bar</foo></Input>"#)
+        .body(r"<Input><foo>bar</foo></Input>")
         .send()
         .await
         .unwrap();
@@ -95,13 +95,13 @@ async fn consume_body_to_xml_requires_xml_content_type() {
 
 #[tokio::test]
 async fn xml_content_types() {
+    #[derive(Deserialize)]
+    struct Value {}
+
+    async fn handler(Xml(_): Xml<Value>) {}
+
     async fn valid_xml_content_type(content_type: &str) -> bool {
-        #[derive(Deserialize)]
-        struct Value {}
-
-        println!("testing {:?}", content_type);
-
-        async fn handler(Xml(_): Xml<Value>) {}
+        println!("testing {content_type:?}");
 
         let app = Router::new().route("/", post(handler));
 

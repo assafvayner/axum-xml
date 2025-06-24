@@ -123,26 +123,20 @@ where
 }
 
 fn xml_content_type(req: &Request<axum_core::body::Body>) -> bool {
-    let content_type = if let Some(content_type) = req.headers().get(header::CONTENT_TYPE) {
-        content_type
-    } else {
+    let Some(content_type) = req.headers().get(header::CONTENT_TYPE) else {
         return false;
     };
 
-    let content_type = if let Ok(content_type) = content_type.to_str() {
-        content_type
-    } else {
+    let Ok(content_type) = content_type.to_str() else {
         return false;
     };
 
-    let mime = if let Ok(mime) = content_type.parse::<mime::Mime>() {
-        mime
-    } else {
+    let Ok(mime) = content_type.parse::<mime::Mime>() else {
         return false;
     };
 
     let is_xml_content_type = (mime.type_() == "application" || mime.type_() == "text")
-        && (mime.subtype() == "xml" || mime.suffix().map_or(false, |name| name == "xml"));
+        && (mime.subtype() == "xml" || mime.suffix().is_some_and(|name| name == "xml"));
 
     is_xml_content_type
 }
