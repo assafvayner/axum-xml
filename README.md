@@ -19,4 +19,4 @@ MIT
 
 ## Credit
 
-Originally forked from [LightQuantumArchive/axum-xml](https://github.com/LightQuantumArchive/axum-xml) which is itself originally a fork of 
+Originally forked from [LightQuantumArchive/axum-xml](https://github.com/LightQuantumArchive/axum-xml).
