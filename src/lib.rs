@@ -11,13 +11,10 @@
 
 use std::ops::{Deref, DerefMut};
 
-use async_trait::async_trait;
-use axum_core::extract::{FromRequest, RequestParts};
+use axum_core::extract::FromRequest;
 use axum_core::response::{IntoResponse, Response};
-use axum_core::BoxError;
 use bytes::Bytes;
-use http::{header, HeaderValue, StatusCode};
-use http_body::Body as HttpBody;
+use http::{header, HeaderValue, Request, StatusCode};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -57,7 +54,8 @@ mod tests;
 ///
 /// let app = Router::new().route("/users", post(create_user));
 /// # async {
-/// # axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
+/// # let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+/// # axum::serve(listener, app).await.unwrap();
 /// # };
 /// ```
 ///
@@ -92,27 +90,28 @@ mod tests;
 ///     # unimplemented!()
 /// }
 ///
-/// let app = Router::new().route("/users/:id", get(get_user));
+/// let app = Router::new().route("/users/{id}", get(get_user));
 /// # async {
-/// # axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
+/// # let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+/// # axum::serve(listener, app).await.unwrap();
 /// # };
 /// ```
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Xml<T>(pub T);
 
-#[async_trait]
-impl<T, B> FromRequest<B> for Xml<T>
+impl<T, S> FromRequest<S> for Xml<T>
 where
     T: DeserializeOwned,
-    B: HttpBody + Send,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
+    S: Send + Sync,
 {
     type Rejection = XmlRejection;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        if xml_content_type(req) {
-            let bytes = Bytes::from_request(req).await?;
+    async fn from_request(
+        req: Request<axum_core::body::Body>,
+        state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        if xml_content_type(&req) {
+            let bytes = Bytes::from_request(req, state).await?;
 
             let value = quick_xml::de::from_reader(&*bytes)?;
 
@@ -123,27 +122,21 @@ where
     }
 }
 
-fn xml_content_type<B>(req: &RequestParts<B>) -> bool {
-    let content_type = if let Some(content_type) = req.headers().get(header::CONTENT_TYPE) {
-        content_type
-    } else {
+fn xml_content_type(req: &Request<axum_core::body::Body>) -> bool {
+    let Some(content_type) = req.headers().get(header::CONTENT_TYPE) else {
         return false;
     };
 
-    let content_type = if let Ok(content_type) = content_type.to_str() {
-        content_type
-    } else {
+    let Ok(content_type) = content_type.to_str() else {
         return false;
     };
 
-    let mime = if let Ok(mime) = content_type.parse::<mime::Mime>() {
-        mime
-    } else {
+    let Ok(mime) = content_type.parse::<mime::Mime>() else {
         return false;
     };
 
     let is_xml_content_type = (mime.type_() == "application" || mime.type_() == "text")
-        && (mime.subtype() == "xml" || mime.suffix().map_or(false, |name| name == "xml"));
+        && (mime.subtype() == "xml" || mime.suffix().is_some_and(|name| name == "xml"));
 
     is_xml_content_type
 }
@@ -173,14 +166,13 @@ where
     T: Serialize,
 {
     fn into_response(self) -> Response {
-        let mut bytes = Vec::new();
-        match quick_xml::se::to_writer(&mut bytes, &self.0) {
-            Ok(_) => (
+        match quick_xml::se::to_string(&self.0) {
+            Ok(xml_string) => (
                 [(
                     header::CONTENT_TYPE,
                     HeaderValue::from_static("application/xml"),
                 )],
-                bytes,
+                xml_string,
             )
                 .into_response(),
             Err(err) => (

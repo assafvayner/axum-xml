@@ -1,14 +1,11 @@
-use std::net::{SocketAddr, TcpListener};
+use std::net::SocketAddr;
 use std::{assert_eq, println};
 
-use axum::body::{Body, HttpBody};
 use axum::routing::post;
-use axum::{BoxError, Router, Server};
-use http::{Request, StatusCode};
+use axum::Router;
+use http::StatusCode;
 use reqwest::RequestBuilder;
 use serde::Deserialize;
-use tower::make::Shared;
-use tower_service::Service;
 
 use crate::Xml;
 
@@ -18,24 +15,19 @@ pub struct TestClient {
 }
 
 impl TestClient {
-    #[allow(clippy::type_repetition_in_bounds)]
-    pub(crate) fn new<S, ResBody>(svc: S) -> Self
-    where
-        S: Service<Request<Body>, Response = http::Response<ResBody>> + Clone + Send + 'static,
-        ResBody: HttpBody + Send + 'static,
-        ResBody::Data: Send,
-        ResBody::Error: Into<BoxError>,
-        S::Future: Send,
-        S::Error: Into<BoxError>,
-    {
-        let listener = TcpListener::bind("127.0.0.1:0").expect("Could not bind ephemeral socket");
+    pub(crate) async fn new(app: Router) -> Self {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("Could not bind ephemeral socket");
         let addr = listener.local_addr().unwrap();
-        println!("Listening on {}", addr);
+        println!("Listening on {addr}");
 
         tokio::spawn(async move {
-            let server = Server::from_tcp(listener).unwrap().serve(Shared::new(svc));
-            server.await.expect("server error");
+            axum::serve(listener, app).await.expect("server error");
         });
+
+        // Give the server a moment to start up
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 
         Self {
             client: reqwest::Client::new(),
@@ -55,12 +47,16 @@ async fn deserialize_body() {
         foo: String,
     }
 
-    let app = Router::new().route("/", post(|input: Xml<Input>| async { input.0.foo }));
+    async fn handler(input: Xml<Input>) -> String {
+        input.0.foo
+    }
 
-    let client = TestClient::new(app);
+    let app = Router::new().route("/", post(handler));
+
+    let client = TestClient::new(app).await;
     let res = client
         .post("/")
-        .body(r#"<Input foo="bar"/>"#)
+        .body(r"<Input><foo>bar</foo></Input>")
         .header("content-type", "application/xml")
         .send()
         .await
@@ -77,12 +73,16 @@ async fn consume_body_to_xml_requires_xml_content_type() {
         foo: String,
     }
 
-    let app = Router::new().route("/", post(|input: Xml<Input>| async { input.0.foo }));
+    async fn handler(input: Xml<Input>) -> String {
+        input.0.foo
+    }
 
-    let client = TestClient::new(app);
+    let app = Router::new().route("/", post(handler));
+
+    let client = TestClient::new(app).await;
     let res = client
         .post("/")
-        .body(r#"<Input foo="bar"/>"#)
+        .body(r"<Input><foo>bar</foo></Input>")
         .send()
         .await
         .unwrap();
@@ -95,15 +95,18 @@ async fn consume_body_to_xml_requires_xml_content_type() {
 
 #[tokio::test]
 async fn xml_content_types() {
+    #[derive(Deserialize)]
+    struct Value {}
+
+    async fn handler(Xml(_): Xml<Value>) {}
+
     async fn valid_xml_content_type(content_type: &str) -> bool {
-        #[derive(Deserialize)]
-        struct Value {}
+        println!("testing {content_type:?}");
 
-        println!("testing {:?}", content_type);
-
-        let app = Router::new().route("/", post(|Xml(_): Xml<Value>| async {}));
+        let app = Router::new().route("/", post(handler));
 
         let res = TestClient::new(app)
+            .await
             .post("/")
             .header("content-type", content_type)
             .body("<Value />")
