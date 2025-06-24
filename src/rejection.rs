@@ -1,5 +1,4 @@
 use axum_core::extract::rejection::BytesRejection;
-use axum_core::response::Response;
 use http::StatusCode;
 use thiserror::Error;
 

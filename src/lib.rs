@@ -54,7 +54,8 @@ mod tests;
 ///
 /// let app = Router::new().route("/users", post(create_user));
 /// # async {
-/// # axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
+/// # let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+/// # axum::serve(listener, app).await.unwrap();
 /// # };
 /// ```
 ///
@@ -89,9 +90,10 @@ mod tests;
 ///     # unimplemented!()
 /// }
 ///
-/// let app = Router::new().route("/users/:id", get(get_user));
+/// let app = Router::new().route("/users/{id}", get(get_user));
 /// # async {
-/// # axum::Server::bind(&"".parse().unwrap()).serve(app.into_make_service()).await.unwrap();
+/// # let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+/// # axum::serve(listener, app).await.unwrap();
 /// # };
 /// ```
 #[derive(Debug, Clone, Copy, Default)]
