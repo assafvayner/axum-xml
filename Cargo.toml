@@ -1,10 +1,10 @@
 [package]
 name = "axum-xml"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
-authors = ["LightQuantum <self@lightquantum.me>"]
+authors = ["Assaf Vayner <assaf@huggingface.co>"]
 description = "XML extractor for axum"
-repository = "https://github.com/PhotonQuantum/axum-xml"
+repository = "https://github.com/assafvayner/axum-xml"
 readme = "README.md"
 license = "MIT"
 keywords = ["axum", "xml", "parser", "parsing", "extractor"]
