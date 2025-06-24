@@ -2,7 +2,7 @@
 name = "axum-xml"
 version = "0.3.0"
 edition = "2021"
-authors = ["Assaf Vayner <assaf@huggingface.co>"]
+authors = ["Assaf Vayner <assafvayner@gmail.com>"]
 description = "XML extractor for axum"
 repository = "https://github.com/assafvayner/axum-xml"
 readme = "README.md"

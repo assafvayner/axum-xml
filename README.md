@@ -16,3 +16,7 @@ Under the hood, [quick-xml](https://github.com/tafia/quick-xml) is used to parse
 ## License
 
 MIT
+
+## Credit
+
+Originally forked from [LightQuantumArchive/axum-xml](https://github.com/LightQuantumArchive/axum-xml) which is itself originally a fork of 
