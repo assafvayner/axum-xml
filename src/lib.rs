@@ -40,7 +40,7 @@ mod tests;
 ///     Router,
 /// };
 /// use serde::Deserialize;
-/// use axum_xml::Xml;
+/// use axum_xml_extract::Xml;
 ///
 /// #[derive(Deserialize)]
 /// struct CreateUser {
@@ -72,7 +72,7 @@ mod tests;
 /// };
 /// use serde::Serialize;
 /// use uuid::Uuid;
-/// use axum_xml::Xml;
+/// use axum_xml_extract::Xml;
 ///
 /// #[derive(Serialize)]
 /// struct User {
