@@ -1,5 +1,5 @@
 [package]
-name = "axum-xml"
+name = "axum-xml-extract"
 version = "0.3.0"
 edition = "2021"
 authors = ["Assaf Vayner <assafvayner@gmail.com>"]

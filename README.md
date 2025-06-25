@@ -1,4 +1,4 @@
-# axum-xml
+# axum-xml-extract
 
 [![crates.io](https://img.shields.io/crates/v/axum-xml?style=flat-square)](https://crates.io/crates/axum-xml)
 [![Documentation](https://img.shields.io/docsrs/axum-xml?style=flat-square)](https://docs.rs/axum-xml)
